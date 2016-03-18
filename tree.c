@@ -40,6 +40,8 @@ queue_t * make_queue(int size);
 void enqueue (queue_t* q, tnode_t* node);
 tnode_t* dequeue (queue_t* q);
 void breadth_first(tnode_t* root, FILE* output);
+void topological(tnode_t* root, FILE* output);
+void topological_helper(tnode_t* root, queue_t* q, FILE* output);
 
 int main(int argc, char** argv) {
   
@@ -47,7 +49,7 @@ int main(int argc, char** argv) {
   FILE* input_fp;
   FILE* output_fp;
   input_fp = fopen(argv[1], "r");
-  //input_fp = fopen("brtest.txt", "r");
+  //input_fp = fopen("sm-test.txt", "r");
   output_fp = fopen("results.txt", "w");
 
   if(input_fp == NULL)
@@ -75,7 +77,7 @@ int main(int argc, char** argv) {
     }
   else
     root = NULL;
-
+  
   if(strncmp(argv[2], "br", 2) == 0)
     breadth_first(root, output_fp);
   else if(strncmp(argv[2], "pr", 2) == 0)
@@ -84,8 +86,10 @@ int main(int argc, char** argv) {
     in_order(root, output_fp);
   else if(strncmp(argv[2], "po", 2) == 0)
     post_order(root, output_fp);
+  else if(strncmp(argv[2], "to", 2) == 0)
+    topological(root, output_fp);
   else
-    printf("Invalid traversal command. Please re-run with in order, pre order, post order, or breadth first.\n For example: ./tree in-order.txt in order\n");
+    printf("Invalid traversal command. Please re-run with in order, pre order, post order, breadth first, or topological.\n For example: ./tree in-order.txt in order\n");
   return 0;
 } //main
 
@@ -283,6 +287,35 @@ void breadth_first(tnode_t* root, FILE* output)
     }
 }
 
+void topological(tnode_t* root, FILE* output)
+{
+  queue_t* q = make_queue(MAX_QSIZE);
+  if(root != NULL)
+    {
+      enqueue(q, root);
+    }
+  tnode_t* tmp = (tnode_t*)malloc(sizeof(tnode_t));
+  while((tmp = dequeue(q)) != NULL)
+    {
+      topological_helper(tmp, q, output);
+    }
+
+}
+
+void topological_helper(tnode_t* root, queue_t* q, FILE* output)
+{
+      while(root->l != NULL || root->r != NULL)
+        {
+          fprintf(output, "%i ", root->value);
+          if(root->r != NULL && root->l != NULL)
+            enqueue(q, root->r);
+          if(root->l != NULL)
+            root=root->l;
+          else 
+            root = root->r;
+        }
+      fprintf(output, "%i ", root->value);
+}
 
 /*
   Refernces:
