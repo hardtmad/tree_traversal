@@ -4,6 +4,8 @@
 #include <malloc.h>
 #include <string.h>
 
+#define MAX_QSIZE 100
+
 // Define tnode_t
 typedef struct tnode{
   int value;
@@ -17,6 +19,14 @@ typedef struct qnode{
   struct qnode* next;
 }qnode_t;
 
+// Define queue_t
+typedef struct queue{
+  int size;
+  int capacity;
+  qnode_t* head;
+  qnode_t* tail;
+}queue_t;
+
 // Function signatures
 tnode_t * make_tnode(int num);
 tnode_t* find (tnode_t* root, int num);
@@ -26,8 +36,9 @@ void pre_order(tnode_t* root, FILE* output);
 void in_order(tnode_t* root, FILE* output);
 void post_order(tnode_t* root, FILE* output);
 qnode_t * make_qnode(tnode_t* node);
-void enqueue (qnode_t* head, tnode_t* node);
-tnode_t* dequeue (qnode_t* head);
+queue_t * make_queue(int size);
+void enqueue (queue_t* q, tnode_t* node);
+tnode_t* dequeue (queue_t* q);
 void breadth_first(tnode_t* root, FILE* output);
 
 int main(int argc, char** argv) {
@@ -35,8 +46,8 @@ int main(int argc, char** argv) {
   // File initialization
   FILE* input_fp;
   FILE* output_fp;
-  //input_fp = fopen(argv[1], "r");
-  input_fp = fopen("brtest.txt", "r");
+  input_fp = fopen(argv[1], "r");
+  //input_fp = fopen("brtest.txt", "r");
   output_fp = fopen("results.txt", "w");
 
   if(input_fp == NULL)
@@ -65,18 +76,16 @@ int main(int argc, char** argv) {
   else
     root = NULL;
 
-  breadth_first(root, output_fp);
-
-  /* if(strncmp(argv[2], "br", 2) == 0) */
-  /*     breadth_first(root, output_fp); */
-  /* else if(strncmp(argv[2], "pr", 2) == 0) */
-  /*   pre_order(root, output_fp); */
-  /* else if(strncmp(argv[2], "in", 2) == 0) */
-  /*   in_order(root, output_fp); */
-  /* else if(strncmp(argv[2], "po", 2) == 0) */
-  /*   post_order(root, output_fp); */
-  /* else */
-  /*   printf("Invalid traversal command. Please re-run with in order, pre order, post order, or breadth first.\n"); */
+  if(strncmp(argv[2], "br", 2) == 0)
+    breadth_first(root, output_fp);
+  else if(strncmp(argv[2], "pr", 2) == 0)
+    pre_order(root, output_fp);
+  else if(strncmp(argv[2], "in", 2) == 0)
+    in_order(root, output_fp);
+  else if(strncmp(argv[2], "po", 2) == 0)
+    post_order(root, output_fp);
+  else
+    printf("Invalid traversal command. Please re-run with in order, pre order, post order, or breadth first.\n For example: ./tree in-order.txt in order\n");
   return 0;
 } //main
 
@@ -201,9 +210,9 @@ void post_order(tnode_t* root,FILE* output )
     {
       if(root->l != NULL)
         post_order(root->l, output);
-      fprintf(output, "%i ", root->value);
       if(root->r != NULL)
         post_order(root->r, output);
+      fprintf(output, "%i ", root->value);
     }
   else
     fprintf(output, "Empty tree");
@@ -217,48 +226,60 @@ qnode_t* make_qnode(tnode_t* n)
   return new_node;
 }
 
-
-void enqueue (qnode_t* head, tnode_t* node)
+queue_t * make_queue(int capacity)
 {
-  qnode_t* new_node = make_qnode(node);
-  if(head == NULL)
-    head = new_node;
+  queue_t* q = (queue_t*)malloc(capacity*sizeof(qnode_t));
+  q->size = 0;
+  q->capacity = capacity;
+  q->head = NULL;
+  q->tail = NULL;
+}
+
+void enqueue (queue_t* q, tnode_t* node)
+{
+  qnode_t* new_qnode = make_qnode(node);
+  if(q->size ==0)
+    {
+      q->head = new_qnode;
+      q->tail = q->head;
+     
+    }
   else
     {
-      while(head->next != NULL)
-        {
-          head = head->next;
-        }
-      head->next = new_node;
+      q->tail->next = new_qnode;
+      q->tail = q->tail->next;
     }
+  q->size++;
 }
 
 
-tnode_t* dequeue (qnode_t* head)
+tnode_t* dequeue (queue_t* q)
 {
-  if(head == NULL)
-    return NULL;
+  if(q->size == 0)
+    {
+      return NULL;
+    }
+
   qnode_t* tmp = (qnode_t*)malloc(sizeof(qnode_t));
-  tmp = head;
-  head = head->next;
+  tmp = q->head;
+  q->head = q->head->next;
+  q->size--;
   return tmp->node;
 }
 
  
 void breadth_first(tnode_t* root, FILE* output)
 {
-  qnode_t* head = (qnode_t*)malloc(sizeof(qnode_t));
+  queue_t* q = make_queue(MAX_QSIZE);
   tnode_t* tmp = (tnode_t*)malloc(sizeof(tnode_t));
-  head = NULL;
-  enqueue(head, root);
-  while((tmp = dequeue(head)) != NULL)
+  enqueue(q, root);
+  while((tmp = dequeue(q)) != NULL)
     {
       fprintf(output, "%i ", tmp->value);
       if(tmp->l != NULL)
-        enqueue(head, tmp->l);
+        enqueue(q, tmp->l);
       if(tmp->r != NULL)
-        enqueue(head, tmp->r);
-      //tmp = dequeue(head);
+        enqueue(q, tmp->r);
     }
 }
 
@@ -266,4 +287,5 @@ void breadth_first(tnode_t* root, FILE* output)
 /*
   Refernces:
   http://www.geeksforgeeks.org/level-order-tree-traversal/
+  http://www.thelearningpoint.net/computer-science/data-structures-queues--with-c-program-source-code
 */
